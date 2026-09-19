@@ -81,6 +81,7 @@ ENV_FLAGS="$ENV_FLAGS -e COLORTERM=${COLORTERM:-truecolor}"
 ENV_FLAGS="$ENV_FLAGS -e LINES=${LINES:-$(tput lines 2>/dev/null || echo 24)}"
 ENV_FLAGS="$ENV_FLAGS -e COLUMNS=${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}"
 ENV_FLAGS="$ENV_FLAGS -e HOME=/home/opencode"
+ENV_FLAGS="$ENV_FLAGS -e LANG=${LANG:-C.UTF-8} -e LC_ALL=${LC_ALL:-C.UTF-8}"
 # Pin XDG dirs to mounted volumes so auth + sessions persist across restarts
 ENV_FLAGS="$ENV_FLAGS -e XDG_DATA_HOME=/home/opencode/.local/share"
 ENV_FLAGS="$ENV_FLAGS -e XDG_CONFIG_HOME=/home/opencode/.config"

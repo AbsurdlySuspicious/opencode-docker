@@ -1,6 +1,10 @@
 #!/bin/bash
 # OpenCode Docker — Entrypoint
 
+# Ensure a UTF-8 locale so the TUI renders box-drawing/wide characters correctly
+export LANG="${LANG:-C.UTF-8}"
+export LC_ALL="${LC_ALL:-C.UTF-8}"
+
 # Fix terminal settings for TUI apps (especially with --network host)
 if [ -t 0 ] && [ -t 1 ]; then
     # Reset terminal to sane defaults

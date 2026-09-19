@@ -44,6 +44,9 @@ RUN mkdir -p /home/opencode/.npm-global \
 ENV PATH="/home/opencode/.npm-global/bin:${PATH}"
 ENV TERM=xterm-256color
 ENV COLORTERM=truecolor
+# UTF-8 locale so the TUI renders box-drawing/wide characters correctly
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 
 # Pin XDG dirs so opencode always reads/writes to the mounted volumes
 # (prevents workspace/.opencode/ from shadowing the persistent data volume)

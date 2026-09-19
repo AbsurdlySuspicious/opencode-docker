@@ -28,6 +28,9 @@ services:
       # Critical for TUI with host networking
       - TERM=${TERM:-xterm-256color}
       - COLORTERM=${COLORTERM:-truecolor}
+      # UTF-8 locale so the TUI renders box-drawing/wide characters correctly
+      - LANG=C.UTF-8
+      - LC_ALL=C.UTF-8
       # Pin XDG dirs to mounted volumes so auth + sessions persist across restarts
       - XDG_DATA_HOME=/home/opencode/.local/share
       - XDG_CONFIG_HOME=/home/opencode/.config
@@ -67,6 +70,9 @@ services:
       - DISPLAY=${DISPLAY:-:0}
       - TERM=${TERM:-xterm-256color}
       - COLORTERM=${COLORTERM:-truecolor}
+      # UTF-8 locale so the TUI renders box-drawing/wide characters correctly
+      - LANG=C.UTF-8
+      - LC_ALL=C.UTF-8
       # Pin XDG dirs to mounted volumes so auth + sessions persist across restarts
       - XDG_DATA_HOME=/home/opencode/.local/share
       - XDG_CONFIG_HOME=/home/opencode/.config
