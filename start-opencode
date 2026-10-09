@@ -13,6 +13,7 @@ Options:
 """
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -68,14 +69,6 @@ def discover_git_dirs(workspace: Path) -> list[dict[str, str]]:
     return git_dirs
 
 
-def format_git_mounts(mounts: list[dict[str, str]]) -> str:
-    """Format git mounts as indented YAML list lines."""
-    if not mounts:
-        return ""
-    lines = ["      - {source}:{target}:ro".format(**m) for m in mounts]
-    return "\n".join(lines)
-
-
 def generate_compose_file(
     workspace: Path,
     container_name: str,
@@ -84,16 +77,18 @@ def generate_compose_file(
     """Generate a docker-compose.yml from the template for a specific container."""
     template = TEMPLATE_FILE.read_text()
     workspace_str = str(workspace.resolve())
-    git_mount_block = format_git_mounts(git_mounts)
     data_dir = GENERATED_DIR / container_name / "data"
+
+    volumes = [f"{workspace_str}:/workspace"]
+    volumes += [f"{m['source']}:{m['target']}:ro" for m in git_mounts]
+    volumes.append(f"{CONFIG_HOST_PATH.resolve()}:{CONFIG_CONTAINER_PATH}:ro")
+    volumes.append(f"{data_dir.resolve()}:{STATE_HOST_PATH}")
+    volumes_json = json.dumps(volumes, indent=2)
 
     content = template.format(
         PROJECT_DIR=str(PROJECT_DIR),
-        WORKSPACE_PATH=workspace_str,
         CONTAINER_NAME=container_name,
-        GIT_MOUNTS=git_mount_block,
-        CONFIG_VOLUME=f"{CONFIG_HOST_PATH.resolve()}:{CONFIG_CONTAINER_PATH}:ro",
-        DATA_VOLUME=f"{data_dir.resolve()}:{STATE_HOST_PATH}",
+        VOLUMES_JSON=volumes_json,
         UID=str(os.getuid()),
         GID=str(os.getgid()),
     )

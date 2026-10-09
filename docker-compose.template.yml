@@ -13,11 +13,7 @@ services:
     networks:
       - default
 
-    volumes:
-      - {WORKSPACE_PATH}:/workspace
-{GIT_MOUNTS}
-      - {CONFIG_VOLUME}
-      - {DATA_VOLUME}
+    volumes: {VOLUMES_JSON}
 
     extra_hosts:
       - host.docker.internal:host-gateway
