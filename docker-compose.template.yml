@@ -1,0 +1,43 @@
+services:
+
+  {CONTAINER_NAME}:
+    build:
+      context: {PROJECT_DIR}
+      dockerfile: Dockerfile
+      args:
+        UID: {UID}
+        GID: {GID}
+    image: opencode-isolated:latest
+    container_name: {CONTAINER_NAME}
+
+    networks:
+      - default
+
+    volumes:
+      - {WORKSPACE_PATH}:/workspace
+{GIT_MOUNTS}
+      - {CONFIG_VOLUME}
+      - {DATA_VOLUME}
+
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - HOME=/home/opencode
+      - DISPLAY=${{DISPLAY:-:0}}
+      - TERM=${{TERM:-xterm-256color}}
+      - COLORTERM=${{COLORTERM:-truecolor}}
+      - EDITOR=vim
+      - LANG=C.UTF-8
+      - LC_ALL=C.UTF-8
+      - XDG_DATA_HOME=/home/opencode/.local/share
+      - XDG_CONFIG_HOME=/home/opencode/.config
+
+    security_opt:
+      - no-new-privileges:true
+    user: {UID}:{GID}
+    stdin_open: true
+    tty: true
+

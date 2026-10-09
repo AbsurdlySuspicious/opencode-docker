@@ -1,0 +1,7 @@
+[project]
+name = "opencode-docker"
+version = "0.1.0"
+description = "Tools for managing isolated opencode docker containers"
+requires-python = ">=3.10"
+dependencies = []
+

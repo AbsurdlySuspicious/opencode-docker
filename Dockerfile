@@ -1,6 +1,7 @@
 FROM ubuntu:26.04
 
 ARG UID
+ARG GID
 
 # Metadata
 LABEL maintainer="opencode-docker"
@@ -62,14 +63,18 @@ ENV XDG_CONFIG_HOME=/home/opencode/.config
 
 # Install OpenCode via npm (more reliable than curl install script)
 RUN \
-    --mount=type=cache,target=/home/opencode/.npm,uid=${UID},gid=${UID} \
+    --mount=type=cache,target=/home/opencode/.npm,uid=${UID},gid=${GID} \
         npm install -g opencode-ai@latest
 
 # Create directories for persistent config
-RUN mkdir -p /home/opencode/.config/opencode /home/opencode/.local/share/opencode
+RUN mkdir -p /home/opencode/.config/opencode /home/opencode/.local/share/opencode \
+    && chown -R ${UID}:${GID} /home/opencode/.config/opencode /home/opencode/.local/share/opencode
 
 # Copy entrypoint script
 COPY --chown=opencode:opencode --chmod=755 entrypoint.sh /home/opencode/entrypoint.sh
+
+# Add convenience alias
+RUN echo 'alias o=opencode' >> /home/opencode/.bashrc
 
 # Set working directory
 WORKDIR /workspace

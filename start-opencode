@@ -1,0 +1,200 @@
+#!/usr/bin/env python3
+"""Instantiate an isolated opencode container from a workspace path.
+
+Usage:
+    ./start-opencode /path/to/project [container_name] [OPTIONS]
+    ./start-opencode /path/to/project my-app --build
+    ./start-opencode /path/to/project my-app --no-attach
+
+Options:
+    --build           Build the image before starting (default: skip, use existing)
+    --no-attach       Don't attach to container logs after starting (default: attach)
+    --help            Show this help message
+"""
+
+import argparse
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+
+PROJECT_DIR = Path(__file__).resolve().parent
+TEMPLATE_FILE = PROJECT_DIR / "docker-compose.template.yml"
+GENERATED_DIR = PROJECT_DIR / ".opencode-containers"
+CONFIG_HOST_PATH = PROJECT_DIR / "data" / "config"
+STATE_HOST_PATH = "/home/opencode/.local/share/opencode"
+CONFIG_CONTAINER_PATH = "/home/opencode/.config/opencode"
+DEFAULT_IMAGE = "opencode-isolated:latest"
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Start an isolated opencode container for a workspace.",
+        epilog="Examples:\n"
+               "  %(prog)s /path/to/project\n"
+               "  %(prog)s /path/to/project my-app --build\n",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("workspace", help="Path to the project workspace on the host")
+    parser.add_argument(
+        "name", nargs="?", default=None,
+        help="Container name (default: basename of workspace path)",
+    )
+    parser.add_argument(
+        "--build", action="store_true", default=False,
+        help="Build the image before starting (default: use existing image)",
+    )
+    parser.add_argument(
+        "--no-attach", action="store_true", default=False,
+        help="Don't attach to container logs after starting",
+    )
+    return parser.parse_args()
+
+
+def discover_git_dirs(workspace: Path) -> list[dict[str, str]]:
+    """Find all .git directories and return source/target path dicts."""
+    git_dirs = []
+    for root, dirs, files in os.walk(workspace):
+        if ".git" in files or ".git" in dirs:
+            git_path = Path(root)
+            rel = git_path.relative_to(workspace)
+            target = f"/workspace/{rel}/.git" if rel != Path(".") else "/workspace/.git"
+            git_dirs.append({
+                "source": str(git_path / ".git"),
+                "target": target,
+            })
+        dirs[:] = [d for d in dirs if d != ".git"]
+    return git_dirs
+
+
+def format_git_mounts(mounts: list[dict[str, str]]) -> str:
+    """Format git mounts as indented YAML list lines."""
+    if not mounts:
+        return ""
+    lines = ["      - {source}:{target}:ro".format(**m) for m in mounts]
+    return "\n".join(lines)
+
+
+def generate_compose_file(
+    workspace: Path,
+    container_name: str,
+    git_mounts: list[dict[str, str]],
+) -> Path:
+    """Generate a docker-compose.yml from the template for a specific container."""
+    template = TEMPLATE_FILE.read_text()
+    workspace_str = str(workspace.resolve())
+    git_mount_block = format_git_mounts(git_mounts)
+    data_dir = GENERATED_DIR / container_name / "data"
+
+    content = template.format(
+        PROJECT_DIR=str(PROJECT_DIR),
+        WORKSPACE_PATH=workspace_str,
+        CONTAINER_NAME=container_name,
+        GIT_MOUNTS=git_mount_block,
+        CONFIG_VOLUME=f"{CONFIG_HOST_PATH.resolve()}:{CONFIG_CONTAINER_PATH}:ro",
+        DATA_VOLUME=f"{data_dir.resolve()}:{STATE_HOST_PATH}",
+        UID=str(os.getuid()),
+        GID=str(os.getgid()),
+    )
+
+    output_path = GENERATED_DIR / container_name / "docker-compose.yml"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(content)
+
+    # Ensure data dir on host has correct ownership so Docker doesn't create it as root
+    data_dir.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        ["chown", "-R", f"{os.getuid()}:{os.getgid()}", str(data_dir)],
+        check=True,
+    )
+
+    return output_path
+
+
+def check_docker() -> bool:
+    """Check if docker is available."""
+    try:
+        subprocess.run(
+            ["docker", "info"],
+            capture_output=True, text=True, check=True, timeout=10,
+        )
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+        print("Error: docker is not available or not running.", file=sys.stderr)
+        return False
+
+
+def check_image(name: str) -> bool:
+    """Check if the Docker image exists."""
+    try:
+        subprocess.run(
+            ["docker", "image", "inspect", name],
+            capture_output=True, text=True, check=True,
+        )
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
+
+
+def run_compose(
+    compose_file: Path,
+    container_name: str,
+    build: bool,
+    attach: bool,
+) -> None:
+    """Run docker compose up for the container."""
+    base_cmd = [
+        "docker", "compose", "-f", str(compose_file),
+        "--project-name", container_name,
+    ]
+
+    if build:
+        subprocess.run(base_cmd + ["build"], cwd=PROJECT_DIR, check=True)
+
+    subprocess.run(
+        base_cmd + ["up", "-d", "--force-recreate", container_name],
+        cwd=PROJECT_DIR, check=True,
+    )
+
+    subprocess.run(base_cmd + ["logs", container_name], cwd=PROJECT_DIR, check=True)
+
+    if attach:
+        subprocess.run(
+            base_cmd + ["attach", container_name],
+            cwd=PROJECT_DIR, check=True,
+        )
+
+
+def main():
+    args = parse_args()
+    workspace = Path(args.workspace).resolve()
+    container_name = args.name or workspace.name
+
+    if not check_docker():
+        sys.exit(1)
+
+    if not workspace.is_dir():
+        print(f"Error: workspace path does not exist: {workspace}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Workspace:   {workspace}")
+    print(f"Container:   {container_name}")
+
+    git_mounts = discover_git_dirs(workspace)
+    if git_mounts:
+        print(f"Git mounts:  {len(git_mounts)} .git dir(s) found")
+    else:
+        print("Git mounts:  none (or only root .git, already mounted via workspace)")
+
+    if not args.build:
+        if not check_image(DEFAULT_IMAGE):
+            print(f"Image '{DEFAULT_IMAGE}' not found. Use --build to build it first.", file=sys.stderr)
+            sys.exit(1)
+
+    compose_file = generate_compose_file(workspace, container_name, git_mounts)
+    run_compose(compose_file, container_name, args.build, not args.no_attach)
+
+
+if __name__ == "__main__":
+    main()

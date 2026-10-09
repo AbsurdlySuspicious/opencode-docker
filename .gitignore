@@ -10,3 +10,7 @@ data/config/
 
 # Workspace — your project files (managed separately)
 workspace/
+
+__pycache__
+
+.opencode-containers
