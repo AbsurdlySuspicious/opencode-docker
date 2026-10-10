@@ -15,8 +15,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN \
   --mount=type=cache,sharing=locked,dst=/var/cache/apt \
   --mount=type=cache,sharing=locked,dst=/var/lib/apt \
-        apt-get update && apt-get install -y \
-            curl \
+        apt-get update && apt-get install -y --no-install-recommends \
+            curl wget \
             git \
             python3 \
             python3-pip \
@@ -29,12 +29,31 @@ RUN \
             fzf \
             bsdutils \
             ncurses-base \
-            vim nano \
-            fd-find
+            vim nano less \
+            fd-find \
+            nodejs npm 
 
 RUN \
   --mount=type=cache,target=/root/.cache/pip \
     pip install --break-system-packages ruff
+
+# Install bun
+# RUN curl -fsSL https://github.com/oven-sh/bun/releases/download/bun-v1.4.2/bun-linux-x64-static.zip -o /tmp/bun.zip \
+#     && unzip -d /tmp /tmp/bun.zip \
+#     && mv /tmp/bun /usr/local/bin/bun \
+#     && mv /tmp/bunjs /usr/local/bin/bunjs 2>/dev/null || true \
+#     && ln -sf /usr/local/bin/bun /usr/local/bin/bunx \
+#     && rm /tmp/bun.zip
+
+# Install uv
+RUN curl -fsSL https://github.com/astral-sh/uv/releases/download/0.13.0/uv-x86_64-unknown-linux-gnu.tar.gz -o /tmp/uv.tar.gz \
+    && tar -xzf /tmp/uv.tar.gz -C /tmp \
+    && mv /tmp/uv-x86_64-unknown-linux-gnu /usr/local/bin/uv \
+    && chmod +x /usr/local/bin/uv \
+    && rm /tmp/uv.tar.gz
+
+# Add bun and uv to PATH
+ENV PATH="/usr/local/bin:${PATH}"
 
 # Create non-root user for security
 RUN userdel -r ubuntu 2>/dev/null || true \
