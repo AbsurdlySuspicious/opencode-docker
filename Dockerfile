@@ -22,7 +22,6 @@ RUN \
             python3-pip \
             python3-venv \
             nodejs \
-            npm \
             ripgrep \
             build-essential \
             ca-certificates \
