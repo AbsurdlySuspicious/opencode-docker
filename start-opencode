@@ -164,7 +164,7 @@ def run_compose(
 def main():
     args = parse_args()
     workspace = Path(args.workspace).resolve()
-    container_name = args.name or workspace.name
+    container_name = f"opencode-{args.name or workspace.name}"
 
     if not check_docker():
         sys.exit(1)
