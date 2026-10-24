@@ -21,9 +21,11 @@ if [ -t 0 ] && [ -t 1 ]; then
     fi
 fi
 
+# Ensure opencode directories exist and have correct ownership
+mkdir -p "$XDG_CONFIG_HOME/opencode" "$XDG_STATE_HOME/opencode" 2>/dev/null || true
+
 # Ensure opencode.json exists (copy default if not present, e.g. fresh container)
 if [ ! -f "$XDG_CONFIG_HOME/opencode/opencode.json" ]; then
-    mkdir -p "$XDG_CONFIG_HOME/opencode"
     cp /home/opencode/defaults/opencode.json "$XDG_CONFIG_HOME/opencode/opencode.json" 2>/dev/null || true
     echo "→ Created default opencode.json with Ollama provider config"
 fi

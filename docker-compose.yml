@@ -15,6 +15,7 @@ services:
       - ${WORKSPACE_PATH:-./workspace}/.git:/workspace/.git:ro
       - ./data/config:/home/opencode/.config/opencode
       - ./data/share:/home/opencode/.local/share/opencode
+      - ./data/state:/home/opencode/.local/state/opencode
       # - /tmp/.X11-unix:/tmp/.X11-unix:ro
 
     extra_hosts:
@@ -33,6 +34,7 @@ services:
       # Pin XDG dirs to mounted volumes so auth + sessions persist across restarts
       - XDG_DATA_HOME=/home/opencode/.local/share
       - XDG_CONFIG_HOME=/home/opencode/.config
+      - OPENCODE_CHANNEL=latest
       - EDITOR=vim
 
     security_opt:

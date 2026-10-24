@@ -30,6 +30,7 @@ services:
       - LC_ALL=C.UTF-8
       - XDG_DATA_HOME=/home/opencode/.local/share
       - XDG_CONFIG_HOME=/home/opencode/.config
+      - OPENCODE_CHANNEL=latest
 
     security_opt:
       - no-new-privileges:true

@@ -78,6 +78,7 @@ ENV LC_ALL=C.UTF-8
 # (prevents workspace/.opencode/ from shadowing the persistent data volume)
 ENV XDG_DATA_HOME=/home/opencode/.local/share
 ENV XDG_CONFIG_HOME=/home/opencode/.config
+ENV OPENCODE_CHANNEL=latest
 
 # Install OpenCode via npm (more reliable than curl install script)
 RUN \

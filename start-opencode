@@ -24,7 +24,9 @@ PROJECT_DIR = Path(__file__).resolve().parent
 TEMPLATE_FILE = PROJECT_DIR / "docker-compose.template.yml"
 GENERATED_DIR = PROJECT_DIR / ".opencode-containers"
 CONFIG_HOST_PATH = PROJECT_DIR / "data" / "config"
-STATE_HOST_PATH = "/home/opencode/.local/share/opencode"
+STATE_HOST_PATH = PROJECT_DIR / "data" / "state"
+SHARE_CONTAINER_PATH = "/home/opencode/.local/share/opencode"
+STATE_CONTAINER_PATH = "/home/opencode/.local/state/opencode"
 CONFIG_CONTAINER_PATH = "/home/opencode/.config/opencode"
 DEFAULT_IMAGE = "opencode-isolated:latest"
 
@@ -81,8 +83,9 @@ def generate_compose_file(
 
     volumes = [f"{workspace_str}:/workspace"]
     volumes += [f"{m['source']}:{m['target']}:ro" for m in git_mounts]
-    volumes.append(f"{CONFIG_HOST_PATH.resolve()}:{CONFIG_CONTAINER_PATH}:ro")
-    volumes.append(f"{data_dir.resolve()}:{STATE_HOST_PATH}")
+    volumes.append(f"{CONFIG_HOST_PATH.resolve()}:{CONFIG_CONTAINER_PATH}")
+    volumes.append(f"{data_dir.resolve()}:{SHARE_CONTAINER_PATH}")
+    volumes.append(f"{STATE_HOST_PATH.resolve()}:{STATE_CONTAINER_PATH}")
     volumes_json = json.dumps(volumes, indent=2)
 
     content = template.format(
@@ -97,10 +100,11 @@ def generate_compose_file(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(content)
 
-    # Ensure data dir on host has correct ownership so Docker doesn't create it as root
+    # Ensure data dir and state dir on host have correct ownership so Docker doesn't create them as root
     data_dir.mkdir(parents=True, exist_ok=True)
+    STATE_HOST_PATH.mkdir(parents=True, exist_ok=True)
     subprocess.run(
-        ["chown", "-R", f"{os.getuid()}:{os.getgid()}", str(data_dir)],
+        ["chown", "-R", f"{os.getuid()}:{os.getgid()}", str(data_dir), str(STATE_HOST_PATH)],
         check=True,
     )
 
