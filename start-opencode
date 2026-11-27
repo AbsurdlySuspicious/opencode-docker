@@ -145,7 +145,7 @@ def run_compose(
     """Run docker compose up for the container."""
     base_cmd = [
         "docker", "compose", "-f", str(compose_file),
-        "--project-name", container_name,
+        "--project-name", container_name.lower()
     ]
 
     if build:
